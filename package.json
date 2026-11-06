@@ -1,0 +1,84 @@
+{
+  "name": "homeos",
+  "version": "1.0.0",
+  "description": "Local-first home operating system & digital binder: connect room inventories, warranties, appliance manuals, maintenance schedules, and audit trail.",
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "author": "Manoj Rollo <fbxmano@gmail.com> (https://github.com/MRJonam91)",
+  "homepage": "https://github.com/MRJonam91/HomeOS#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MRJonam91/HomeOS.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MRJonam91/HomeOS/issues"
+  },
+  "keywords": [
+    "homeos",
+    "home-management",
+    "digital-binder",
+    "home-inventory",
+    "warranty-tracker",
+    "maintenance-schedule",
+    "appliance-manuals",
+    "local-first",
+    "typescript",
+    "nodejs",
+    "cli",
+    "smart-home",
+    "property-management",
+    "home-audit"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "bin": {
+    "homeos": "dist/cli/index.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README.it.md",
+    "LICENSE",
+    "COMMERCIAL-LICENSE.md",
+    "CLA.md",
+    "LICENSING.md"
+  ],
+  "scripts": {
+    "start": "node --loader ts-node/esm src/cli/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/MRJonam91"
+    },
+    {
+      "type": "ko-fi",
+      "url": "https://ko-fi.com/mrjonam"
+    },
+    {
+      "type": "buymeacoffee",
+      "url": "https://buymeacoffee.com/mrjonam"
+    },
+    {
+      "type": "paypal",
+      "url": "https://paypal.me/manorollo"
+    }
+  ],
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "typescript": "^5.7.3"
+  }
+}

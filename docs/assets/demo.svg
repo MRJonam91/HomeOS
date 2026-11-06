@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="100%" height="100%">
+  <metadata>
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/">
+      <dc:creator>Manoj Rollo (MRJonam91)</dc:creator>
+      <dc:identifier>homeos.ledger.f8c2b1</dc:identifier>
+      <dc:title>HomeOS Demo Preview</dc:title>
+    </rdf:RDF>
+  </metadata>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="cardBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <style>
+      .term-title { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; fill: #94a3b8; font-weight: 600; }
+      .term-text { font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace; font-size: 13px; fill: #f8fafc; }
+      .prompt { fill: #38bdf8; font-weight: bold; }
+      .cmd { fill: #facc15; }
+      .accent { fill: #4ade80; }
+      .warn { fill: #fbbf24; }
+      .err { fill: #f87171; }
+      .dim { fill: #64748b; }
+      .cyan { fill: #22d3ee; }
+      .pill { rx: 4px; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="520" rx="16" fill="url(#bg)" />
+
+  <!-- Terminal Window Chrome -->
+  <rect x="25" y="25" width="850" height="470" rx="12" fill="#090d16" stroke="#334155" stroke-width="1.5" />
+  <circle cx="50" cy="50" r="6" fill="#ef4444" />
+  <circle cx="70" cy="50" r="6" fill="#f59e0b" />
+  <circle cx="90" cy="50" r="6" fill="#10b981" />
+  <text x="450" y="55" text-anchor="middle" class="term-title">HomeOS — Local-First Home Operating System</text>
+
+  <!-- Terminal Content -->
+  <g transform="translate(50, 95)">
+    <!-- Command 1 -->
+    <text x="0" y="0" class="term-text"><tspan class="prompt">$ </tspan><tspan class="cmd">homeos audit --sample</tspan></text>
+    
+    <text x="0" y="26" class="term-text dim">HomeOS Integrity Audit Report — Casa Pilota (Via Po 12, Torino)</text>
+    <text x="0" y="44" class="term-text dim">Valore complessivo inventario censito: €4,639.00 | Consumo stimato: ~1,792 kWh/anno</text>
+    <line x1="0" y1="56" x2="800" y2="56" stroke="#334155" stroke-width="1" />
+
+    <!-- Facts -->
+    <text x="0" y="78" class="term-text accent">1. FATTI ACCERTATI E VERIFICABILI (14 riscontri):</text>
+    <text x="15" y="100" class="term-text"><tspan class="accent">✓</tspan> Matricola accertata: Pompa di Calore ACS Ariston Nuos Plus -> <tspan class="cyan">SN-ARISTON-839210</tspan></text>
+    <text x="15" y="120" class="term-text"><tspan class="accent">✓</tspan> Certificato conformità impianto: [inspection_certificate] D.M. 37/08 (data: 2024-05-18)</text>
+    <text x="15" y="140" class="term-text"><tspan class="accent">✓</tspan> Intervento storico: Riparazione pompa Bosch Centro Assistenza BSH (€110 [Fatt. FT-2025-0481])</text>
+
+    <!-- Estimates -->
+    <text x="0" y="174" class="term-text cyan">2. INDICATORI STIMATI E CONSUMI:</text>
+    <text x="15" y="196" class="term-text"><tspan class="cyan">~</tspan> Pompa di Calore ACS: 820 kWh/anno (550 W nom.) | Frigo LG: 350 kWh/anno (classe D)</text>
+
+    <!-- Human Decisions -->
+    <text x="0" y="230" class="term-text warn">3. DECISIONI RICHIESTE A UNA PERSONA (Azione necessaria):</text>
+    <text x="15" y="252" class="term-text"><tspan class="err">!</tspan> [CRITICO] Controllo acustico e prova fumo Nest Protect in scadenza <tspan class="warn">-> Eseguire test push</tspan></text>
+    <text x="15" y="272" class="term-text"><tspan class="warn">!</tspan> [ALTA] Tagliando biennale anodo magnesio scaldabagno Ariston <tspan class="warn">-> Chiamare tecnico per garanzia</tspan></text>
+
+    <!-- Command 2 -->
+    <text x="0" y="318" class="term-text"><tspan class="prompt">$ </tspan><tspan class="cmd">homeos dossier room-kitchen-pilot --lang it --out docs/Dossier-Cucina.md</tspan></text>
+    <text x="0" y="344" class="term-text accent">✔ Dossier Stanza esportato: 5 elettrodomestici, garanzie, scadenziario checklist e schede PDF.</text>
+    <text x="0" y="366" class="term-text dim">Pronto per rogito, affitto, perizia assicurativa o manutenzione programmata fai-da-te.</text>
+  </g>
+</svg>

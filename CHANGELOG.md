@@ -4,41 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0-beta.1] - 2026-11-06
-
-### Added
-- **iCalendar (.ics) Calendar Feed Adapter** (`src/adapters/ical.ts`): Exports scheduled maintenance tasks as standard RFC 5545 `.ics` feeds with 7-day advance reminder alarms (`VALARM`), task priority mappings, and item context for Google Calendar, Apple Calendar, and Outlook.
-- **Home Assistant Smart Home Package** (`src/adapters/homeassistant.ts`): Generates turnkey YAML configuration packages with template sensors (`sensor.homeos_total_items`, `sensor.homeos_active_warranties`, `sensor.homeos_expiring_warranties`, `sensor.homeos_overdue_tasks`, `sensor.homeos_annual_energy`) and persistent notification automations.
-- **Standalone Responsive HTML Dashboard** (`src/adapters/html.ts`): Single-file, zero-CDN interactive house dashboard and printable binder with dark/light theme support, metrics cards, warranty progress, and maintenance checklists.
-- **Ledger Diff & Synchronization Engine** (`src/adapters/diff.ts`): Computes structural differences between any two ledger revisions or backup snapshots (`homeos diff`), detailing additions, removals, property adjustments, and new maintenance logs.
-- **Canonical JSON Schema** (`schema/homeos-ledger.schema.json`): Official JSON Schema Draft 2020-12 definition for external integrations and IDE auto-completion.
-- **Backup Snapshot Transparency**: Enhanced `loadLedger` to automatically recognize and unwrap cryptographic backup snapshots.
-- **Extended Test Suite**: 29 automated test cases covering iCalendar RFC format, Home Assistant YAML packages, HTML escaping, and ledger diffs.
-
-## [1.1.0-alpha] - 2026-11-06
-
-### Added
-- **Ledger Schema Validator** (`src/core/validator.ts`): Comprehensive schema validation ensuring date format compliance (`YYYY-MM-DD`), non-negative pricing, referential integrity across rooms and items, duplicate ID rejection, and high-value equipment warnings.
-- **Whole-House Master Binder Generator** (`src/core/exporter.ts`): `generateHouseDossierMarkdown` generates a complete estate-level dossier including room summaries, safety equipment register, and centralized action items.
-- **CSV Data Adapters** (`src/adapters/csv.ts`): Standalone RFC-compliant CSV exporters for full property inventory and planned maintenance schedules with field escaping.
-- **Cryptographic Backup Engine** (`src/adapters/backup.ts`): Generates and verifies SHA-256 tamper-evident snapshots of the local ledger.
-- **Operational CLI Subcommands** (`src/cli/index.ts`):
-  - `homeos task done`: records completed maintenance, updates history log, and recalculates next due date.
-  - `homeos task add`: creates new routine maintenance task with frequency and DIY flag.
-  - `homeos doc add`: attaches user manuals, receipts, and compliance certificates.
-  - `homeos export`: exports CSV inventory, CSV schedule, or cryptographic backup.
-  - `homeos dossier`: whole-house master binder when room ID is omitted.
-- **Expanded Test Suite**: 23 automated tests covering schema validation edge cases, CSV escaping, cryptographic snapshots, and live CLI maintenance tracking.
-
 ## [1.0.0] - 2026-11-06
 
 ### Added
-- **Core Data Model**: Property, Room, Item, Warranty, MaintenanceSchedule, MaintenanceLog, DocumentRef, and ConsumptionProfile.
-- **Local-first Ledger Engine**: Zero-network JSON database with atomic file persistence and deterministic schema validation.
-- **Warranty Guardian**: Lifecycle tracking (`active`, `expiring_soon`, `expired`, `lifetime`), remaining day calculations, policy & support link association.
-- **Maintenance Scheduler**: Recurring maintenance tracker with DIY/contractor indicators, overdue detection, configurable horizon forecasts (30/60/90 days), and cost projection.
-- **Three-Tier Data Audit**: Strict separation of observed verifiable facts (serials, receipts, logs), estimated metrics (power draw, replacement cost), and required human decisions (warranty claims, urgent safety tasks).
-- **Bilingual Dossier Generator**: Export room binder and house dossier in structured Italian and English Markdown tables for property archives, tenants, or insurance claims.
-- **Synthetic Kitchen Pilot Fixture**: Built-in verifiable test room ("Cucina Principale") with heat pump water heater, induction hob, dishwasher, smart fridge, and smoke/CO safety monitor.
-- **Interactive CLI**: Fast commands for `init`, `room`, `item`, `list`, `search`, `schedule`, `warranties`, `audit`, and `dossier`.
-- **Governance & Standards**: Dual-licensing (AGPL-3.0-only + Commercial), CLA, security disclosure policy, funding metadata, and CI core line guard.
+- **Core Architecture & Data Model**: Hierarchical property, room, item, warranty, maintenance schedule, maintenance log, and consumption profile (`src/core/types.ts`).
+- **Local-First Ledger Engine**: Deterministic local JSON storage with atomic file persistence (`src/core/inventory.ts`).
+- **Schema Validation & Integrity Guard**: Deep validation with ISO date checks, non-negative monetary constraints, reference integrity, and equipment alerts (`src/core/validator.ts`).
+- **Warranty Guardian**: Lifecycle state engine (`active`, `expiring_soon`, `expired`, `lifetime`), remaining day computations, policy references, and customer care hotlines (`src/core/warranty.ts`).
+- **Preventative Maintenance Scheduler**: Recurring maintenance tracker with DIY/pro categorization, step-by-step checklists, overdue tracking, horizon filtering, and cost projections (`src/core/maintenance.ts`).
+- **Three-Tier Data Audit Engine**: Tripartite separation of observed facts, estimated indicators (power/replacement value), and pending human decisions (`src/core/audit.ts`).
+- **Bilingual Markdown Binder Exporters**: Instant generation of structured room dossiers and whole-estate binders in Italian and English (`src/core/exporter.ts`).
+- **Ecosystem Adapters**:
+  - **iCalendar (.ics)**: RFC 5545 calendar feed with 7-day advance reminder alarms (`src/adapters/ical.ts`).
+  - **Home Assistant**: Turnkey YAML package with template sensors and automated notification alerts (`src/adapters/homeassistant.ts`).
+  - **Interactive HTML Dashboard**: Standalone zero-CDN responsive dashboard and printable PDF report (`src/adapters/html.ts`).
+  - **Spreadsheet CSV**: RFC-compliant CSV exporters for asset inventories and maintenance schedules (`src/adapters/csv.ts`).
+  - **Cryptographic Backups & Diff**: SHA-256 tamper-evident snapshots and visual ledger diff engine (`src/adapters/backup.ts`, `src/adapters/diff.ts`).
+- **Official JSON Schema**: Canonical Draft 2020-12 schema definition (`schema/homeos-ledger.schema.json`).
+- **Interactive CLI**: Fast terminal commands for `init`, `room`, `item`, `task`, `doc`, `list`, `search`, `schedule`, `warranties`, `audit`, `dossier`, `export`, and `diff` (`src/cli/index.ts`).
+- **Synthetic Kitchen Pilot Fixture**: Ready-to-test master kitchen with heat pump water heater, induction hob, dishwasher, smart fridge, and smoke/CO monitor (`src/core/fixtures.ts`).
+- **Governance & Legal Standards**: Dual-licensing (AGPL-3.0-only + Commercial), Contributor License Agreement (`CLA.md`), Security Policy (`SECURITY.md`), and Funding metadata (`.github/FUNDING.yml`).

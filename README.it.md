@@ -1,6 +1,6 @@
 # HomeOS — Il Sistema Operativo Locale e Libretto Digitale della Casa
 
-[Italiano](README.it.md) · [English](README.md) · [Architettura](docs/ARCHITECTURE.md) · [Checklist di Lancio](docs/LAUNCH.md) · [Changelog](CHANGELOG.md)
+[Italiano](README.it.md) · [English](README.md) · [Architettura](docs/ARCHITECTURE.md) · [Piano di Sviluppo](docs/ROADMAP.md) · [Checklist di Lancio](docs/LAUNCH.md) · [Changelog](CHANGELOG.md)
 
 [![Licenza: AGPL-3.0](https://img.shields.io/badge/Licenza-AGPL_3.0-blue.svg)](LICENSE)
 [![CI](https://github.com/MRJonam91/HomeOS/actions/workflows/ci.yml/badge.svg)](https://github.com/MRJonam91/HomeOS/actions/workflows/ci.yml)

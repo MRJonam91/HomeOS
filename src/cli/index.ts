@@ -42,7 +42,7 @@ import type { DocumentType, ItemCategory, RoomCategory, TaskPriority } from "../
 
 function printUsage(): void {
   console.log(`
-HomeOS v${HOMEOS_SCHEMA_VERSION} (Beta) — Local-first home operating system & digital binder
+HomeOS v${HOMEOS_SCHEMA_VERSION} — Local-first home operating system & digital binder
 
 Usage:
   homeos <command> [subcommand] [options]

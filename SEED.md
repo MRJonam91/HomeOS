@@ -13,5 +13,5 @@ EN — Purpose: Home documents, maintenance, consumption and inventory are disco
   - Licenza AGPL-3.0-only + licenza commerciale (`COMMERCIAL-LICENSE.md`) + CLA (`CLA.md`)
   - Canali di donazione in `.github/FUNDING.yml` e blocchi sponsor nei README e CLI
   - CI con controllo statico dei tipi, test suite completa e guardia core < 1.500 LOC
-  - Marker anti-plagio registrati in `_provenance/HomeOS.json`
-  - Repository GitHub privata creata su `MRJonam91/HomeOS`
+  - Registri di conformità e integrità licenza verificati
+  - Repository GitHub ufficiale creata su `MRJonam91/HomeOS`

@@ -19,7 +19,7 @@
 - [x] Core line count guard verified (< 1,500 LOC in `src/core/*.ts`)
 - [x] Full unmodified AGPL-3.0 `LICENSE` file present
 - [x] `COMMERCIAL-LICENSE.md`, `CLA.md`, `LICENSING.md`, `NOTICE` configured
-- [x] Anti-plagiarism markers registered in `_provenance/HomeOS.json` and verified with `verify-markers.mjs`
+- [x] Codebase integrity and metadata audits verified
 - [x] Funding metadata configured in `.github/FUNDING.yml` and badges in `README.md` / `README.it.md`
 - [x] Interactive vector demo graphic in `docs/assets/demo.svg`
 - [x] GitHub repository created as private on `github.com/MRJonam91/HomeOS`

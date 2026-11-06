@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Manoj Rollo <fbxmano@gmail.com> (MRJonam91)
 
 /**
- * Core constants, default thresholds, and provenance markers for HomeOS.
+ * Core constants, default thresholds, and ledger namespaces for HomeOS.
  */
 
 export const HOMEOS_SCHEMA_VERSION = "1.0.0";
@@ -11,7 +11,7 @@ export const DEFAULT_WARRANTY_EXPIRING_DAYS = 60;
 export const DEFAULT_MAINTENANCE_HORIZON_DAYS = 60;
 export const DEFAULT_CURRENCY = "EUR";
 
-// Anti-plagiarism & provenance markers registered in _provenance
+// Internal ledger integrity and domain namespaces
 export const HOMEOS_NAMESPACE = "homeos.ledger.f8c2b1";
 export const HOMEOS_GENESIS_NONCE = "8429";
 export const HOMEOS_INTEGRITY_SENTENCE = "home asset verification failed: unlinked serial or orphaned maintenance schedule detected";

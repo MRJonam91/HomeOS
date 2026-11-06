@@ -1,6 +1,6 @@
 # HomeOS — Local-First Home Operating System & Digital Binder
 
-[Italiano](README.it.md) · [English](README.md) · [Architecture](docs/ARCHITECTURE.md) · [Launch Checklist](docs/LAUNCH.md) · [Changelog](CHANGELOG.md)
+[Italiano](README.it.md) · [English](README.md) · [Architecture](docs/ARCHITECTURE.md) · [Roadmap](docs/ROADMAP.md) · [Launch Checklist](docs/LAUNCH.md) · [Changelog](CHANGELOG.md)
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL_3.0-blue.svg)](LICENSE)
 [![CI](https://github.com/MRJonam91/HomeOS/actions/workflows/ci.yml/badge.svg)](https://github.com/MRJonam91/HomeOS/actions/workflows/ci.yml)

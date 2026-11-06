@@ -193,6 +193,54 @@ test("cli: task completion, task adding, document attachment, and export command
     runCli(["diff", ledgerFile, backupFile]);
     assert.ok(logs.some((l) => l.includes("HomeOS Ledger Comparison")));
 
+    // 11. Summary / Stats command
+    logs.length = 0;
+    runCli(["summary", "--file", ledgerFile]);
+    assert.ok(logs.some((l) => l.includes("HomeOS Summary")));
+    assert.ok(logs.some((l) => l.includes("Asset Valuation")));
+
+    // 12. Item info command
+    logs.length = 0;
+    runCli(["item", "info", "item-nuos-boiler", "--file", ledgerFile]);
+    assert.ok(logs.some((l) => l.includes("Item Info: Pompa di Calore")));
+    assert.ok(logs.some((l) => l.includes("SN-ARISTON-839210")));
+
+    // 13. Item warranty update command
+    logs.length = 0;
+    runCli([
+      "item",
+      "warranty",
+      "item-lg-fridge",
+      "--provider",
+      "LG Premium Care",
+      "--months",
+      "36",
+      "--start",
+      "2025-01-10",
+      "--contact",
+      "800-123456",
+      "--file",
+      ledgerFile,
+    ]);
+    assert.ok(logs.some((l) => l.includes("Warranty updated for item")));
+
+    // 14. Task list and Doc list commands
+    logs.length = 0;
+    runCli(["task", "list", "--file", ledgerFile]);
+    assert.ok(logs.some((l) => l.includes("Maintenance Tasks:")));
+    logs.length = 0;
+    runCli(["doc", "list", "--file", ledgerFile]);
+    assert.ok(logs.some((l) => l.includes("Attached Documents:")));
+
+    // 15. Item rm and Room rm commands
+    logs.length = 0;
+    runCli(["item", "rm", "item-nest-protect", "--file", ledgerFile]);
+    assert.ok(logs.some((l) => l.includes("Item 'item-nest-protect' removed")));
+
+    logs.length = 0;
+    runCli(["room", "rm", "room-kitchen-pilot", "--file", ledgerFile]);
+    assert.ok(logs.some((l) => l.includes("Room 'room-kitchen-pilot' and associated items removed")));
+
     assert.equal(errors.length, 0);
   } finally {
     console.log = originalLog;

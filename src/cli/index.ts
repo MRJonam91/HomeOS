@@ -20,10 +20,12 @@ import {
   getItem,
   getRoom,
   loadLedger,
+  removeItem,
+  removeRoom,
   saveLedger,
   searchItems,
 } from "../core/inventory.ts";
-import { auditWarranties } from "../core/warranty.ts";
+import { auditWarranties, evaluateWarranty } from "../core/warranty.ts";
 import {
   computeScheduledTasksCost,
   getMaintenanceSchedule,
@@ -38,7 +40,7 @@ import { generateMaintenanceIcs } from "../adapters/ical.ts";
 import { generateHomeAssistantYaml } from "../adapters/homeassistant.ts";
 import { generateHouseDashboardHtml } from "../adapters/html.ts";
 import { diffLedgers, formatLedgerDiffText } from "../adapters/diff.ts";
-import type { DocumentType, ItemCategory, RoomCategory, TaskPriority } from "../core/types.ts";
+import type { DocumentType, ItemCategory, RoomCategory, TaskPriority, Warranty } from "../core/types.ts";
 
 function printUsage(): void {
   console.log(`
@@ -47,31 +49,39 @@ HomeOS v${HOMEOS_SCHEMA_VERSION} — Local-first home operating system & digital
 Usage:
   homeos <command> [subcommand] [options]
 
-Core Commands:
-  init                  Initialize a new HomeOS ledger
-                        Options: --sample (seed with pilot kitchen), --file <path>, --name <propName>
+Inventory & Rooms:
+  init                  Initialize a new HomeOS ledger (--sample, --file <path>, --name <propName>)
+  summary / stats       Quick dashboard summary of property, assets, warranties, and routines
   room list             List all rooms and item counts
   room add <name>       Add a new room (--floor <floor>, --category <category>)
+  room rm <roomId>      Remove a room and its associated items
   item add <roomId> <name>
                         Add an item to a room (--brand <b>, --model <m>, --serial <s>, --price <p>)
+  item info <itemId>    Show full inspection card for a single item (specs, warranty, docs, logs)
+  item rm <itemId>      Remove an item from inventory
+  item warranty <itemId>
+                        Add or update warranty (--provider <p>, --months <m>, --start <YYYY-MM-DD>)
   list                  List inventory items (--room <roomId>)
   search <query>        Search items across brands, models, serial numbers, documents
+
+Operations & Maintenance:
+  task done <itemId> <taskId>
+                        Mark a maintenance task as completed (--cost <eur>, --by <who>, --invoice <ref>)
+  task add <itemId> <title>
+                        Add a routine task (--freq <months>, --due <YYYY-MM-DD>, --cost <eur>, --diy)
+  task list [itemId]    List maintenance tasks across property or for an item
+  doc add <itemId> <title> <type> <pathOrUrl>
+                        Attach a document reference (manual, receipt, invoice, certificate)
+  doc list [itemId]     List attached documents across property or for an item
+
+Audits & Dossiers:
   schedule              Show upcoming & overdue maintenance tasks (--days <n>, default: 60)
   warranties            Audit warranty statuses and expiring equipment (--days <n>, default: 60)
   audit                 Run three-tier audit (observed facts, estimates, human decisions)
   dossier [roomId]      Export Markdown dossier (specify roomId, or omit for whole-house binder)
                         Options: --lang <it|en> (default: it), --out <file>
 
-Operations & Maintenance:
-  task done <itemId> <taskId>
-                        Mark a maintenance task as completed
-                        Options: --cost <eur>, --by <who>, --invoice <ref>, --date <YYYY-MM-DD>
-  task add <itemId> <title>
-                        Add a routine task (--freq <months>, --due <YYYY-MM-DD>, --cost <eur>, --diy)
-  doc add <itemId> <title> <type> <pathOrUrl>
-                        Attach a document reference (manual, receipt, invoice, certificate)
-
-Smart Home, Feeds & Sync:
+Ecosystem Exports & Sync:
   export                Export data to various ecosystem formats
                         --ical <file.ics>            Export maintenance routines to iCalendar feed
                         --homeassistant <file.yaml>  Generate Home Assistant sensors & alerts package
@@ -162,6 +172,36 @@ export function runCli(argv: string[] = process.argv.slice(2)): void {
         break;
       }
 
+      case "summary":
+      case "stats": {
+        const ledger = loadLedger(ledgerPath);
+        const warranties = auditWarranties(ledger.items, ledger.rooms);
+        const schedule = getMaintenanceSchedule(ledger.items, ledger.rooms, 60);
+        const overdue = schedule.filter((s) => s.isOverdue);
+        const costs = computeScheduledTasksCost(schedule);
+        const totalVal = ledger.items.reduce(
+          (acc, i) => acc + (i.estimatedReplacementValueEur ?? i.purchasePrice ?? 0),
+          0
+        );
+        let totalKWh = 0;
+        for (const i of ledger.items) {
+          if (i.consumption?.estimatedAnnualKWh) totalKWh += i.consumption.estimatedAnnualKWh;
+        }
+
+        console.log(`\n=== HomeOS Summary: ${ledger.property.name} ===`);
+        console.log(`Address:               ${ledger.property.address ?? "N/D"}`);
+        console.log(`Rooms:                 ${ledger.rooms.length}`);
+        console.log(`Total Items:           ${ledger.items.length}`);
+        console.log(`Asset Valuation:       €${totalVal.toLocaleString()}`);
+        console.log(`Annual Energy Est.:    ~${Math.round(totalKWh)} kWh/a`);
+        console.log(`Active Warranties:     ${warranties.filter((w) => w.status === "active" || w.status === "lifetime").length} / ${warranties.length}`);
+        console.log(`Expiring Warranties:   ${warranties.filter((w) => w.status === "expiring_soon").length}`);
+        console.log(`Scheduled Tasks (60d): ${schedule.length} (Overdue: ${overdue.length})`);
+        console.log(`Forecast Cost (60d):   €${costs.totalEstimatedCostEur} (DIY: €${costs.diyEstimatedCostEur}, Pro: €${costs.contractorEstimatedCostEur})`);
+        console.log("=".repeat(50));
+        break;
+      }
+
       case "room": {
         const sub = positional[1]?.toLowerCase();
         const ledger = loadLedger(ledgerPath);
@@ -186,6 +226,21 @@ export function runCli(argv: string[] = process.argv.slice(2)): void {
           const added = addRoom(ledger, { name: roomName, floor, category });
           saveLedger(ledger, ledgerPath);
           console.log(`Room '${added.name}' created with ID: ${added.id}`);
+        } else if (sub === "rm" || sub === "delete") {
+          const roomId = positional[2];
+          if (!roomId) {
+            console.error("Error: Missing roomId. Usage: homeos room rm <roomId>");
+            process.exitCode = 1;
+            return;
+          }
+          const removed = removeRoom(ledger, roomId);
+          if (!removed) {
+            console.error(`Error: Room '${roomId}' not found.`);
+            process.exitCode = 1;
+            return;
+          }
+          saveLedger(ledger, ledgerPath);
+          console.log(`Room '${roomId}' and associated items removed.`);
         } else {
           console.error(`Unknown room subcommand: ${sub}`);
           process.exitCode = 1;
@@ -223,6 +278,109 @@ export function runCli(argv: string[] = process.argv.slice(2)): void {
           });
           saveLedger(ledger, ledgerPath);
           console.log(`Item '${added.name}' added to room '${roomId}' with ID: ${added.id}`);
+        } else if (sub === "rm" || sub === "delete") {
+          const itemId = positional[2];
+          if (!itemId) {
+            console.error("Error: Missing itemId. Usage: homeos item rm <itemId>");
+            process.exitCode = 1;
+            return;
+          }
+          const removed = removeItem(ledger, itemId);
+          if (!removed) {
+            console.error(`Error: Item '${itemId}' not found.`);
+            process.exitCode = 1;
+            return;
+          }
+          saveLedger(ledger, ledgerPath);
+          console.log(`Item '${itemId}' removed.`);
+        } else if (sub === "info") {
+          const itemId = positional[2];
+          if (!itemId) {
+            console.error("Error: Missing itemId. Usage: homeos item info <itemId>");
+            process.exitCode = 1;
+            return;
+          }
+          const item = getItem(ledger, itemId);
+          if (!item) {
+            console.error(`Error: Item '${itemId}' not found.`);
+            process.exitCode = 1;
+            return;
+          }
+          const room = getRoom(ledger, item.roomId);
+          console.log(`\n=== Item Info: ${item.name} ===`);
+          console.log(`ID:           ${item.id}`);
+          console.log(`Room:         ${room?.name ?? item.roomId} (ID: ${item.roomId})`);
+          console.log(`Category:     ${item.category}`);
+          console.log(`Brand/Model:  ${item.brand ?? "-"} ${item.model ?? ""}`);
+          console.log(`Serial:       ${item.serialNumber ?? "N/D"}`);
+          console.log(`Purchase:     ${item.purchaseDate ?? "N/D"} (Price: €${item.purchasePrice ?? 0})`);
+          console.log(`Replacement:  €${item.estimatedReplacementValueEur ?? item.purchasePrice ?? 0}`);
+          if (item.warranty) {
+            const evalW = evaluateWarranty(item.warranty);
+            console.log(`Warranty:     ${item.warranty.provider} (Status: ${evalW.status.toUpperCase()}, Expiry: ${evalW.endDate}, Remaining: ${evalW.daysRemaining}d)`);
+            if (item.warranty.policyNumber) console.log(`Policy #:     ${item.warranty.policyNumber}`);
+            if (item.warranty.supportContact) console.log(`Support:      ${item.warranty.supportContact}`);
+          } else {
+            console.log(`Warranty:     None recorded`);
+          }
+          if (item.consumption) {
+            console.log(`Power:        ${item.consumption.ratedPowerWatts ?? "?"}W nom, ${item.consumption.standbyWatts ?? "?"}W standby, Est: ~${item.consumption.estimatedAnnualKWh ?? "?"} kWh/a (Class ${item.consumption.energyClass ?? "N/D"})`);
+          }
+          console.log(`Documents (${item.documents.length}):`);
+          for (const d of item.documents) {
+            console.log(`  - [${d.type}] ${d.title} -> ${d.pathOrUrl} (${d.dateAdded})`);
+          }
+          console.log(`Maintenance Tasks (${item.maintenanceTasks.length}):`);
+          for (const t of item.maintenanceTasks) {
+            console.log(`  - ${t.title} [Every ${t.frequencyMonths}m, Due: ${t.nextDueDate}, Priority: ${t.priority.toUpperCase()}, ${t.diyFriendly ? "DIY" : "PRO"}]`);
+          }
+          console.log(`Maintenance Logs (${item.maintenanceLogs.length}):`);
+          for (const l of item.maintenanceLogs) {
+            console.log(`  - ${l.performedDate}: €${l.costEur} by ${l.contractorOrDiy}${l.invoiceRef ? ` (Inv: ${l.invoiceRef})` : ""}${l.notes ? ` - ${l.notes}` : ""}`);
+          }
+          console.log("=".repeat(45));
+        } else if (sub === "warranty") {
+          const itemId = positional[2];
+          if (!itemId) {
+            console.error("Error: Missing itemId. Usage: homeos item warranty <itemId> --provider <p> --months <m> --start <YYYY-MM-DD> [--policy <pol>] [--contact <tel>]");
+            process.exitCode = 1;
+            return;
+          }
+          const item = getItem(ledger, itemId);
+          if (!item) {
+            console.error(`Error: Item '${itemId}' not found.`);
+            process.exitCode = 1;
+            return;
+          }
+          const provider = typeof flags["provider"] === "string" ? flags["provider"] : undefined;
+          const monthsStr = typeof flags["months"] === "string" ? flags["months"] : undefined;
+          const startDate = typeof flags["start"] === "string" ? flags["start"] : undefined;
+          if (!provider || !monthsStr || !startDate) {
+            console.error("Error: Missing required flags. Required: --provider <name> --months <n> --start <YYYY-MM-DD>");
+            process.exitCode = 1;
+            return;
+          }
+          const months = parseInt(monthsStr, 10);
+          if (Number.isNaN(months) || months < 0) {
+            console.error("Error: --months must be a positive integer.");
+            process.exitCode = 1;
+            return;
+          }
+          const policyNumber = typeof flags["policy"] === "string" ? flags["policy"] : undefined;
+          const supportContact = typeof flags["contact"] === "string" ? flags["contact"] : undefined;
+          const notes = typeof flags["notes"] === "string" ? flags["notes"] : undefined;
+
+          const updatedWarranty: Warranty = {
+            provider,
+            coverageMonths: months,
+            startDate,
+            policyNumber,
+            supportContact,
+            notes,
+          };
+          item.warranty = updatedWarranty;
+          saveLedger(ledger, ledgerPath);
+          console.log(`Warranty updated for item '${item.name}' (Provider: ${provider}, Coverage: ${months} months)`);
         } else {
           console.error(`Unknown item subcommand: ${sub}`);
           process.exitCode = 1;
@@ -300,6 +458,20 @@ export function runCli(argv: string[] = process.argv.slice(2)): void {
           });
           saveLedger(ledger, ledgerPath);
           console.log(`Task '${created.title}' added to item '${itemId}' (ID: ${created.id})`);
+        } else if (sub === "list") {
+          const filterItem = positional[2];
+          const items = filterItem ? ledger.items.filter((i) => i.id === filterItem) : ledger.items;
+          console.log(`\nMaintenance Tasks:`);
+          console.log("-".repeat(85));
+          let count = 0;
+          for (const item of items) {
+            for (const t of item.maintenanceTasks) {
+              count++;
+              console.log(`- [${t.id}] ${t.title} (Item: ${item.name}) | Every ${t.frequencyMonths}m | Due: ${t.nextDueDate} | ${t.diyFriendly ? "DIY" : "PRO"}`);
+            }
+          }
+          console.log("-".repeat(85));
+          console.log(`Total tasks: ${count}`);
         } else {
           console.error(`Unknown task subcommand: ${sub}`);
           process.exitCode = 1;
@@ -330,6 +502,20 @@ export function runCli(argv: string[] = process.argv.slice(2)): void {
           });
           saveLedger(ledger, ledgerPath);
           console.log(`Document '${added.title}' [${added.type}] linked to item '${itemId}' (ID: ${added.id})`);
+        } else if (sub === "list") {
+          const filterItem = positional[2];
+          const items = filterItem ? ledger.items.filter((i) => i.id === filterItem) : ledger.items;
+          console.log(`\nAttached Documents:`);
+          console.log("-".repeat(85));
+          let count = 0;
+          for (const item of items) {
+            for (const d of item.documents) {
+              count++;
+              console.log(`- [${d.id}] [${d.type}] ${d.title} (Item: ${item.name}) -> ${d.pathOrUrl}`);
+            }
+          }
+          console.log("-".repeat(85));
+          console.log(`Total documents: ${count}`);
         } else {
           console.error(`Unknown doc subcommand: ${sub}`);
           process.exitCode = 1;

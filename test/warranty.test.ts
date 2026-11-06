@@ -14,6 +14,9 @@ import type { Item, Room, Warranty } from "../src/core/types.ts";
 test("warranty: date utilities compute offsets correctly", () => {
   assert.equal(addMonthsToIsoDate("2024-01-15", 12), "2025-01-15");
   assert.equal(addMonthsToIsoDate("2024-01-15", 24), "2026-01-15");
+  assert.equal(addMonthsToIsoDate("2024-01-31", 1), "2024-02-29"); // Leap year leap day
+  assert.equal(addMonthsToIsoDate("2025-01-31", 1), "2025-02-28"); // Non-leap year clamp
+  assert.equal(addMonthsToIsoDate("2024-03-31", 1), "2024-04-30"); // 30-day month clamp
   assert.equal(computeDaysDifference("2026-01-01", "2026-01-11"), 10);
   assert.equal(computeDaysDifference("2026-01-11", "2026-01-01"), -10);
 });

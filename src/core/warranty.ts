@@ -5,11 +5,21 @@ import { DEFAULT_WARRANTY_EXPIRING_DAYS } from "./constants.ts";
 import type { Item, Room, Warranty, WarrantyEvaluation, WarrantyStatus } from "./types.ts";
 
 export function addMonthsToIsoDate(isoDate: string, months: number): string {
-  const d = new Date(isoDate);
-  if (Number.isNaN(d.getTime())) return isoDate;
-  const currentMonth = d.getUTCMonth();
-  d.setUTCMonth(currentMonth + months);
-  return d.toISOString().split("T")[0] ?? isoDate;
+  const parts = isoDate.split("-");
+  if (parts.length !== 3) return isoDate;
+  const year = parseInt(parts[0]!, 10);
+  const month = parseInt(parts[1]!, 10) - 1;
+  const day = parseInt(parts[2]!, 10);
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) return isoDate;
+
+  const targetDate = new Date(Date.UTC(year, month + months, 1));
+  const targetYear = targetDate.getUTCFullYear();
+  const targetMonth = targetDate.getUTCMonth();
+  const lastDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  const clampedDay = Math.min(day, lastDay);
+
+  const finalDate = new Date(Date.UTC(targetYear, targetMonth, clampedDay));
+  return finalDate.toISOString().split("T")[0] ?? isoDate;
 }
 
 export function computeDaysDifference(fromIsoDate: string, toIsoDate: string): number {

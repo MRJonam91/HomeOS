@@ -31,11 +31,15 @@ export function loadLedger(filePath: string): HomeLedger {
   }
   const raw = readFileSync(filePath, "utf-8");
   const parsed = JSON.parse(raw);
-  const validation = validateLedger(parsed);
+  const target =
+    parsed && typeof parsed === "object" && "payload" in parsed && typeof parsed.payload === "object"
+      ? parsed.payload
+      : parsed;
+  const validation = validateLedger(target);
   if (!validation.valid) {
     throw new Error(`Invalid HomeOS ledger in ${filePath}:\n- ${validation.errors.join("\n- ")}`);
   }
-  return parsed as HomeLedger;
+  return target as HomeLedger;
 }
 
 export function saveLedger(ledger: HomeLedger, filePath: string): void {

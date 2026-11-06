@@ -34,11 +34,15 @@ import { generateHouseDossierMarkdown, generateRoomDossierMarkdown } from "../co
 import { createSyntheticPilotHome } from "../core/fixtures.ts";
 import { exportInventoryToCsv, exportMaintenanceScheduleToCsv } from "../adapters/csv.ts";
 import { createLedgerBackup } from "../adapters/backup.ts";
+import { generateMaintenanceIcs } from "../adapters/ical.ts";
+import { generateHomeAssistantYaml } from "../adapters/homeassistant.ts";
+import { generateHouseDashboardHtml } from "../adapters/html.ts";
+import { diffLedgers, formatLedgerDiffText } from "../adapters/diff.ts";
 import type { DocumentType, ItemCategory, RoomCategory, TaskPriority } from "../core/types.ts";
 
 function printUsage(): void {
   console.log(`
-HomeOS v${HOMEOS_SCHEMA_VERSION} (Alpha) — Local-first home operating system & digital binder
+HomeOS v${HOMEOS_SCHEMA_VERSION} (Beta) — Local-first home operating system & digital binder
 
 Usage:
   homeos <command> [subcommand] [options]
@@ -66,8 +70,16 @@ Operations & Maintenance:
                         Add a routine task (--freq <months>, --due <YYYY-MM-DD>, --cost <eur>, --diy)
   doc add <itemId> <title> <type> <pathOrUrl>
                         Attach a document reference (manual, receipt, invoice, certificate)
-  export                Export data to CSV or create cryptographic backup
-                        Options: --csv-inventory <file>, --csv-schedule <file>, --backup <file>
+
+Smart Home, Feeds & Sync:
+  export                Export data to various ecosystem formats
+                        --ical <file.ics>            Export maintenance routines to iCalendar feed
+                        --homeassistant <file.yaml>  Generate Home Assistant sensors & alerts package
+                        --html <file.html>           Generate standalone printable HTML dashboard
+                        --csv-inventory <file.csv>   Export inventory to spreadsheet CSV
+                        --csv-schedule <file.csv>    Export maintenance schedule to CSV
+                        --backup <file.json>         Create cryptographic SHA-256 backup
+  diff <fileA> [fileB]  Compare two ledgers and display additions, deletions, and modifications
 
 Global Flags:
   -f, --file <path>     Path to ledger file (default: ./homeos-ledger.json)
@@ -254,7 +266,6 @@ export function runCli(argv: string[] = process.argv.slice(2)): void {
             notes,
           });
 
-          // Replace item in ledger
           const itemIdx = ledger.items.findIndex((i) => i.id === itemId);
           ledger.items[itemIdx] = updatedItem;
           saveLedger(ledger, ledgerPath);
@@ -468,10 +479,43 @@ export function runCli(argv: string[] = process.argv.slice(2)): void {
           const backup = createLedgerBackup(ledger);
           writeFileSync(resolve(process.cwd(), flags["backup"]), JSON.stringify(backup, null, 2), "utf-8");
           console.log(`Cryptographic backup saved to: ${flags["backup"]} (SHA-256: ${backup.sha256})`);
+        } else if (typeof flags["ical"] === "string") {
+          const ics = generateMaintenanceIcs(ledger.items, ledger.rooms, {
+            propertyName: ledger.property.name,
+          });
+          writeFileSync(resolve(process.cwd(), flags["ical"]), ics, "utf-8");
+          console.log(`iCalendar maintenance feed exported to: ${flags["ical"]}`);
+        } else if (typeof flags["homeassistant"] === "string") {
+          const yaml = generateHomeAssistantYaml(ledger);
+          writeFileSync(resolve(process.cwd(), flags["homeassistant"]), yaml, "utf-8");
+          console.log(`Home Assistant package YAML exported to: ${flags["homeassistant"]}`);
+        } else if (typeof flags["html"] === "string") {
+          const lang = flags["lang"] === "en" ? "en" : "it";
+          const html = generateHouseDashboardHtml(ledger, { lang });
+          writeFileSync(resolve(process.cwd(), flags["html"]), html, "utf-8");
+          console.log(`Standalone HTML Dashboard exported to: ${flags["html"]}`);
         } else {
-          console.error("Error: Please specify export format: --csv-inventory <file>, --csv-schedule <file>, or --backup <file>");
+          console.error("Error: Please specify export format: --ical, --homeassistant, --html, --csv-inventory, --csv-schedule, or --backup");
           process.exitCode = 1;
         }
+        break;
+      }
+
+      case "diff": {
+        const fileA = positional[1];
+        const fileB = positional[2];
+        if (!fileA) {
+          console.error("Error: Usage: homeos diff <fileA> [fileB]");
+          process.exitCode = 1;
+          return;
+        }
+        const ledgerA = loadLedger(resolve(process.cwd(), fileA));
+        const ledgerB = fileB
+          ? loadLedger(resolve(process.cwd(), fileB))
+          : loadLedger(ledgerPath);
+
+        const diff = diffLedgers(ledgerA, ledgerB);
+        console.log(formatLedgerDiffText(diff));
         break;
       }
 

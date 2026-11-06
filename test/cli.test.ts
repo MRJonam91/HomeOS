@@ -167,6 +167,32 @@ test("cli: task completion, task adding, document attachment, and export command
     assert.equal(existsSync(backupFile), true);
     assert.ok(logs.some((l) => l.includes("Cryptographic backup saved")));
 
+    // 7. Export iCalendar feed
+    logs.length = 0;
+    const icalFile = join(tempDir, "calendar.ics");
+    runCli(["export", "--ical", icalFile, "--file", ledgerFile]);
+    assert.equal(existsSync(icalFile), true);
+    assert.ok(logs.some((l) => l.includes("iCalendar maintenance feed exported")));
+
+    // 8. Export Home Assistant package YAML
+    logs.length = 0;
+    const haFile = join(tempDir, "homeos_ha.yaml");
+    runCli(["export", "--homeassistant", haFile, "--file", ledgerFile]);
+    assert.equal(existsSync(haFile), true);
+    assert.ok(logs.some((l) => l.includes("Home Assistant package YAML exported")));
+
+    // 9. Export Standalone HTML Dashboard
+    logs.length = 0;
+    const htmlFile = join(tempDir, "dashboard.html");
+    runCli(["export", "--html", htmlFile, "--file", ledgerFile]);
+    assert.equal(existsSync(htmlFile), true);
+    assert.ok(logs.some((l) => l.includes("Standalone HTML Dashboard exported")));
+
+    // 10. Ledger Diff command
+    logs.length = 0;
+    runCli(["diff", ledgerFile, backupFile]);
+    assert.ok(logs.some((l) => l.includes("HomeOS Ledger Comparison")));
+
     assert.equal(errors.length, 0);
   } finally {
     console.log = originalLog;

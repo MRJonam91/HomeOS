@@ -88,7 +88,16 @@ npm run build
 | `homeos schedule [--days <n>]` | Mostra il calendario manutenzioni e il riepilogo costi stimati |
 | `homeos warranties [--days <n>]` | Ispeziona le garanzie evidenziando coperture attive e scadenze |
 | `homeos audit` | Genera il report di integrità (fatti accertati vs stime vs decisioni) |
-| `homeos dossier <roomId> [--lang it\|en]` | Esporta il fascicolo completo della stanza in Markdown |
+| `homeos dossier [roomId] [--lang it\|en]` | Esporta il fascicolo completo in Markdown (stanza o intera casa) |
+| `homeos task done <itemId> <taskId>` | Registra intervento eseguito e ricalcola la scadenza futura |
+| `homeos task add <itemId> <titolo>` | Pianifica una nuova manutenzione periodica con frequenza e stima costi |
+| `homeos doc add <itemId> <titolo> <tipo>` | Collega libretti d'uso, scontrini o certificati di conformità |
+| `homeos export --ical <file.ics>` | Esporta il calendario manutenzioni in formato iCalendar (.ics) |
+| `homeos export --homeassistant <file.yaml>` | Genera il pacchetto sensori e automazioni per Home Assistant |
+| `homeos export --html <file.html>` | Genera la dashboard HTML interattiva e stampabile in PDF |
+| `homeos export --csv-inventory <file.csv>` | Esporta l'inventario in formato CSV per fogli di calcolo |
+| `homeos export --backup <file.json>` | Salva uno snapshot di backup con checksum SHA-256 |
+| `homeos diff <fileA> [fileB]` | Confronta due registri evidenziando aggiunte, rimozioni e modifiche |
 
 ---
 

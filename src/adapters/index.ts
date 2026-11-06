@@ -3,3 +3,7 @@
 
 export * from "./csv.ts";
 export * from "./backup.ts";
+export * from "./ical.ts";
+export * from "./homeassistant.ts";
+export * from "./html.ts";
+export * from "./diff.ts";

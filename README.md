@@ -88,7 +88,16 @@ npm run build
 | `homeos schedule [--days <n>]` | View upcoming and overdue maintenance tasks and estimated costs |
 | `homeos warranties [--days <n>]` | Audit warranty coverages and flag expiring guarantees |
 | `homeos audit` | Run tripartite data integrity report (facts vs estimates vs decisions) |
-| `homeos dossier <roomId> [--lang it\|en]` | Export structured Markdown house binder |
+| `homeos dossier [roomId] [--lang it\|en]` | Export Markdown house binder (room or whole-house) |
+| `homeos task done <itemId> <taskId>` | Mark maintenance task as completed and advance due date |
+| `homeos task add <itemId> <title>` | Add routine maintenance task with frequency and checklist |
+| `homeos doc add <itemId> <title> <type>` | Attach manuals, receipts, or inspection certificates |
+| `homeos export --ical <file.ics>` | Export maintenance routines to iCalendar (.ics) feed |
+| `homeos export --homeassistant <file.yaml>` | Generate Home Assistant YAML sensor & alert package |
+| `homeos export --html <file.html>` | Export self-contained, printable HTML dashboard |
+| `homeos export --csv-inventory <file.csv>` | Export full property inventory to spreadsheet CSV |
+| `homeos export --backup <file.json>` | Create tamper-evident cryptographic SHA-256 backup |
+| `homeos diff <fileA> [fileB]` | Compare two ledgers and summarize changes |
 
 ---
 

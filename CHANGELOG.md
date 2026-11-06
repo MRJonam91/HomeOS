@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0-beta.1] - 2026-11-06
+
+### Added
+- **iCalendar (.ics) Calendar Feed Adapter** (`src/adapters/ical.ts`): Exports scheduled maintenance tasks as standard RFC 5545 `.ics` feeds with 7-day advance reminder alarms (`VALARM`), task priority mappings, and item context for Google Calendar, Apple Calendar, and Outlook.
+- **Home Assistant Smart Home Package** (`src/adapters/homeassistant.ts`): Generates turnkey YAML configuration packages with template sensors (`sensor.homeos_total_items`, `sensor.homeos_active_warranties`, `sensor.homeos_expiring_warranties`, `sensor.homeos_overdue_tasks`, `sensor.homeos_annual_energy`) and persistent notification automations.
+- **Standalone Responsive HTML Dashboard** (`src/adapters/html.ts`): Single-file, zero-CDN interactive house dashboard and printable binder with dark/light theme support, metrics cards, warranty progress, and maintenance checklists.
+- **Ledger Diff & Synchronization Engine** (`src/adapters/diff.ts`): Computes structural differences between any two ledger revisions or backup snapshots (`homeos diff`), detailing additions, removals, property adjustments, and new maintenance logs.
+- **Canonical JSON Schema** (`schema/homeos-ledger.schema.json`): Official JSON Schema Draft 2020-12 definition for external integrations and IDE auto-completion.
+- **Backup Snapshot Transparency**: Enhanced `loadLedger` to automatically recognize and unwrap cryptographic backup snapshots.
+- **Extended Test Suite**: 29 automated test cases covering iCalendar RFC format, Home Assistant YAML packages, HTML escaping, and ledger diffs.
+
 ## [1.1.0-alpha] - 2026-11-06
 
 ### Added

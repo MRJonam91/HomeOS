@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/MRJonam91/HomeOS/main/schema/homeos-ledger.schema.json",
+  "title": "HomeOSLedger",
+  "description": "Canonical JSON Schema for HomeOS local-first residential ledger and digital binder.",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "property", "rooms", "items"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "property": {
+      "type": "object",
+      "required": ["id", "name", "createdAt"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "cadastralData": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+      }
+    },
+    "rooms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "propertyId", "name", "category"],
+        "properties": {
+          "id": { "type": "string" },
+          "propertyId": { "type": "string" },
+          "name": { "type": "string" },
+          "floor": { "type": "string" },
+          "category": {
+            "type": "string",
+            "enum": ["kitchen", "bathroom", "bedroom", "living_room", "utility_room", "garage", "outdoor", "hallway", "office", "other"]
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "roomId", "name", "category", "documents", "maintenanceTasks", "maintenanceLogs"],
+        "properties": {
+          "id": { "type": "string" },
+          "roomId": { "type": "string" },
+          "name": { "type": "string" },
+          "brand": { "type": "string" },
+          "model": { "type": "string" },
+          "serialNumber": { "type": "string" },
+          "category": {
+            "type": "string",
+            "enum": ["appliance", "hvac", "electrical", "plumbing", "furniture", "electronics", "safety", "structural", "tool", "other"]
+          },
+          "purchaseDate": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+          "purchasePrice": { "type": "number", "minimum": 0 },
+          "currency": { "type": "string" },
+          "estimatedReplacementValueEur": { "type": "number", "minimum": 0 },
+          "warranty": {
+            "type": "object",
+            "required": ["provider", "coverageMonths", "startDate"],
+            "properties": {
+              "provider": { "type": "string" },
+              "coverageMonths": { "type": "number", "minimum": 0 },
+              "startDate": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+              "endDate": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+              "policyNumber": { "type": "string" },
+              "documentRef": { "type": "string" },
+              "supportContact": { "type": "string" }
+            }
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "title", "type", "pathOrUrl", "dateAdded"],
+              "properties": {
+                "id": { "type": "string" },
+                "title": { "type": "string" },
+                "type": {
+                  "type": "string",
+                  "enum": ["manual", "receipt", "warranty_card", "inspection_certificate", "invoice", "schematic", "other"]
+                },
+                "pathOrUrl": { "type": "string" },
+                "dateAdded": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+              }
+            }
+          },
+          "maintenanceTasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "title", "frequencyMonths", "nextDueDate", "priority", "estimatedCostEur", "diyFriendly"],
+              "properties": {
+                "id": { "type": "string" },
+                "title": { "type": "string" },
+                "frequencyMonths": { "type": "number", "minimum": 1 },
+                "lastPerformedDate": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+                "nextDueDate": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+                "priority": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+                "estimatedCostEur": { "type": "number", "minimum": 0 },
+                "diyFriendly": { "type": "boolean" },
+                "checklist": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          },
+          "maintenanceLogs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "taskId", "performedDate", "costEur", "contractorOrDiy"],
+              "properties": {
+                "id": { "type": "string" },
+                "taskId": { "type": "string" },
+                "performedDate": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+                "costEur": { "type": "number", "minimum": 0 },
+                "contractorOrDiy": { "type": "string" },
+                "invoiceRef": { "type": "string" }
+              }
+            }
+          },
+          "consumption": {
+            "type": "object",
+            "properties": {
+              "ratedPowerWatts": { "type": "number", "minimum": 0 },
+              "standbyWatts": { "type": "number", "minimum": 0 },
+              "energyClass": { "type": "string" },
+              "estimatedAnnualKWh": { "type": "number", "minimum": 0 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "homeos",
-  "version": "1.0.0",
+  "version": "1.1.0-alpha.1",
   "description": "Local-first home operating system & digital binder: connect room inventories, warranties, appliance manuals, maintenance schedules, and audit trail.",
   "type": "module",
   "license": "AGPL-3.0-only",

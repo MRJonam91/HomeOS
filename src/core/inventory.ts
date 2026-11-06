@@ -4,7 +4,8 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { HOMEOS_SCHEMA_VERSION, HOMEOS_NAMESPACE } from "./constants.ts";
-import type { HomeLedger, Item, Property, Room } from "./types.ts";
+import { validateLedger } from "./validator.ts";
+import type { DocumentRef, HomeLedger, Item, MaintenanceTask, Property, Room } from "./types.ts";
 
 export function createEmptyLedger(propertyName: string = "Mia Casa", address?: string): HomeLedger {
   const propertyId = `prop-${Date.now()}`;
@@ -29,11 +30,12 @@ export function loadLedger(filePath: string): HomeLedger {
     throw new Error(`Ledger file not found at ${filePath}. Run 'homeos init' first.`);
   }
   const raw = readFileSync(filePath, "utf-8");
-  const parsed = JSON.parse(raw) as HomeLedger;
-  if (!parsed.schemaVersion || !parsed.property || !Array.isArray(parsed.rooms) || !Array.isArray(parsed.items)) {
-    throw new Error(`Invalid HomeOS ledger format in ${filePath}`);
+  const parsed = JSON.parse(raw);
+  const validation = validateLedger(parsed);
+  if (!validation.valid) {
+    throw new Error(`Invalid HomeOS ledger in ${filePath}:\n- ${validation.errors.join("\n- ")}`);
   }
-  return parsed;
+  return parsed as HomeLedger;
 }
 
 export function saveLedger(ledger: HomeLedger, filePath: string): void {
@@ -85,6 +87,44 @@ export function addItem(
   };
   ledger.items.push(newItem);
   return newItem;
+}
+
+export function addDocumentToItem(
+  ledger: HomeLedger,
+  itemId: string,
+  doc: Omit<DocumentRef, "id" | "dateAdded"> & { id?: string; dateAdded?: string }
+): DocumentRef {
+  const item = getItem(ledger, itemId);
+  if (!item) {
+    throw new Error(`Item '${itemId}' not found in ledger.`);
+  }
+  const newDoc: DocumentRef = {
+    id: doc.id ?? `doc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    title: doc.title,
+    type: doc.type,
+    pathOrUrl: doc.pathOrUrl,
+    notes: doc.notes,
+    dateAdded: doc.dateAdded ?? new Date().toISOString().split("T")[0] ?? "2026-01-01",
+  };
+  item.documents.push(newDoc);
+  return newDoc;
+}
+
+export function addMaintenanceTaskToItem(
+  ledger: HomeLedger,
+  itemId: string,
+  task: Omit<MaintenanceTask, "id"> & { id?: string }
+): MaintenanceTask {
+  const item = getItem(ledger, itemId);
+  if (!item) {
+    throw new Error(`Item '${itemId}' not found in ledger.`);
+  }
+  const newTask: MaintenanceTask = {
+    ...task,
+    id: task.id ?? `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+  };
+  item.maintenanceTasks.push(newTask);
+  return newTask;
 }
 
 export function getRoom(ledger: HomeLedger, roomId: string): Room | undefined {

@@ -14,50 +14,63 @@ import {
 import {
   addRoom,
   addItem,
+  addDocumentToItem,
+  addMaintenanceTaskToItem,
   createEmptyLedger,
+  getItem,
   getRoom,
   loadLedger,
   saveLedger,
   searchItems,
 } from "../core/inventory.ts";
 import { auditWarranties } from "../core/warranty.ts";
-import { computeScheduledTasksCost, getMaintenanceSchedule } from "../core/maintenance.ts";
+import {
+  computeScheduledTasksCost,
+  getMaintenanceSchedule,
+  recordMaintenanceCompletion,
+} from "../core/maintenance.ts";
 import { analyzeHomeIntegrity } from "../core/audit.ts";
-import { generateRoomDossierMarkdown } from "../core/exporter.ts";
+import { generateHouseDossierMarkdown, generateRoomDossierMarkdown } from "../core/exporter.ts";
 import { createSyntheticPilotHome } from "../core/fixtures.ts";
-import type { ItemCategory, RoomCategory } from "../core/types.ts";
+import { exportInventoryToCsv, exportMaintenanceScheduleToCsv } from "../adapters/csv.ts";
+import { createLedgerBackup } from "../adapters/backup.ts";
+import type { DocumentType, ItemCategory, RoomCategory, TaskPriority } from "../core/types.ts";
 
 function printUsage(): void {
   console.log(`
-HomeOS v${HOMEOS_SCHEMA_VERSION} — Local-first home operating system & digital binder
+HomeOS v${HOMEOS_SCHEMA_VERSION} (Alpha) — Local-first home operating system & digital binder
 
 Usage:
-  homeos <command> [options]
+  homeos <command> [subcommand] [options]
 
-Commands:
+Core Commands:
   init                  Initialize a new HomeOS ledger
                         Options: --sample (seed with pilot kitchen), --file <path>, --name <propName>
   room list             List all rooms and item counts
-                        Options: --file <path>
-  room add <name>       Add a new room
-                        Options: --floor <floor>, --category <category>, --file <path>
+  room add <name>       Add a new room (--floor <floor>, --category <category>)
   item add <roomId> <name>
-                        Add an item to a room
-                        Options: --brand <b>, --model <m>, --serial <s>, --price <p>, --category <c>
-  list                  List inventory items
-                        Options: --room <roomId>, --file <path>
+                        Add an item to a room (--brand <b>, --model <m>, --serial <s>, --price <p>)
+  list                  List inventory items (--room <roomId>)
   search <query>        Search items across brands, models, serial numbers, documents
-                        Options: --file <path>
-  schedule              Show upcoming & overdue maintenance tasks
-                        Options: --days <n> (default: 60), --file <path>
-  warranties            Audit warranty statuses and expiring equipment
-                        Options: --days <n> (default: 60), --file <path>
+  schedule              Show upcoming & overdue maintenance tasks (--days <n>, default: 60)
+  warranties            Audit warranty statuses and expiring equipment (--days <n>, default: 60)
   audit                 Run three-tier audit (observed facts, estimates, human decisions)
-                        Options: --file <path>
-  dossier <roomId>      Export structured Markdown Room Dossier / House Binder
-                        Options: --lang <it|en> (default: it), --out <file>, --file <path>
+  dossier [roomId]      Export Markdown dossier (specify roomId, or omit for whole-house binder)
+                        Options: --lang <it|en> (default: it), --out <file>
 
-Global flags:
+Operations & Maintenance:
+  task done <itemId> <taskId>
+                        Mark a maintenance task as completed
+                        Options: --cost <eur>, --by <who>, --invoice <ref>, --date <YYYY-MM-DD>
+  task add <itemId> <title>
+                        Add a routine task (--freq <months>, --due <YYYY-MM-DD>, --cost <eur>, --diy)
+  doc add <itemId> <title> <type> <pathOrUrl>
+                        Attach a document reference (manual, receipt, invoice, certificate)
+  export                Export data to CSV or create cryptographic backup
+                        Options: --csv-inventory <file>, --csv-schedule <file>, --backup <file>
+
+Global Flags:
+  -f, --file <path>     Path to ledger file (default: ./homeos-ledger.json)
   -h, --help            Show this help manual
   -v, --version         Print version
 
@@ -205,6 +218,114 @@ export function runCli(argv: string[] = process.argv.slice(2)): void {
         break;
       }
 
+      case "task": {
+        const sub = positional[1]?.toLowerCase();
+        const ledger = loadLedger(ledgerPath);
+
+        if (sub === "done") {
+          const itemId = positional[2];
+          const taskId = positional[3];
+          if (!itemId || !taskId) {
+            console.error("Error: Usage: homeos task done <itemId> <taskId> [--cost <eur>] [--by <who>] [--invoice <ref>]");
+            process.exitCode = 1;
+            return;
+          }
+          const item = getItem(ledger, itemId);
+          if (!item) {
+            console.error(`Error: Item '${itemId}' not found.`);
+            process.exitCode = 1;
+            return;
+          }
+
+          const costStr = typeof flags["cost"] === "string" ? flags["cost"] : "0";
+          const contractorOrDiy = typeof flags["by"] === "string" ? flags["by"] : "Fai-da-te";
+          const invoiceRef = typeof flags["invoice"] === "string" ? flags["invoice"] : undefined;
+          const notes = typeof flags["notes"] === "string" ? flags["notes"] : undefined;
+          const performedDate =
+            typeof flags["date"] === "string"
+              ? flags["date"]
+              : new Date().toISOString().split("T")[0] ?? "2026-01-01";
+
+          const { updatedItem, createdLog } = recordMaintenanceCompletion(item, taskId, {
+            performedDate,
+            costEur: parseFloat(costStr),
+            contractorOrDiy,
+            invoiceRef,
+            notes,
+          });
+
+          // Replace item in ledger
+          const itemIdx = ledger.items.findIndex((i) => i.id === itemId);
+          ledger.items[itemIdx] = updatedItem;
+          saveLedger(ledger, ledgerPath);
+
+          const task = updatedItem.maintenanceTasks.find((t) => t.id === taskId);
+          console.log(`Task '${task?.title}' marked completed on ${performedDate}.`);
+          console.log(`Next due date recalculated: ${task?.nextDueDate} (Log ID: ${createdLog.id})`);
+        } else if (sub === "add") {
+          const itemId = positional[2];
+          const taskTitle = positional[3];
+          if (!itemId || !taskTitle) {
+            console.error("Error: Usage: homeos task add <itemId> <title> --freq <months> --due <YYYY-MM-DD> [--cost <eur>] [--diy]");
+            process.exitCode = 1;
+            return;
+          }
+          const freqStr = typeof flags["freq"] === "string" ? flags["freq"] : "12";
+          const nextDueDate =
+            typeof flags["due"] === "string"
+              ? flags["due"]
+              : new Date().toISOString().split("T")[0] ?? "2026-01-01";
+          const costStr = typeof flags["cost"] === "string" ? flags["cost"] : "0";
+          const priority = (typeof flags["priority"] === "string" ? flags["priority"] : "medium") as TaskPriority;
+          const diyFriendly = flags["diy"] !== false;
+
+          const created = addMaintenanceTaskToItem(ledger, itemId, {
+            title: taskTitle,
+            frequencyMonths: parseInt(freqStr, 10),
+            nextDueDate,
+            priority,
+            estimatedCostEur: parseFloat(costStr),
+            diyFriendly,
+          });
+          saveLedger(ledger, ledgerPath);
+          console.log(`Task '${created.title}' added to item '${itemId}' (ID: ${created.id})`);
+        } else {
+          console.error(`Unknown task subcommand: ${sub}`);
+          process.exitCode = 1;
+        }
+        break;
+      }
+
+      case "doc": {
+        const sub = positional[1]?.toLowerCase();
+        const ledger = loadLedger(ledgerPath);
+
+        if (sub === "add") {
+          const itemId = positional[2];
+          const title = positional[3];
+          const docType = (positional[4] ?? "manual") as DocumentType;
+          const pathOrUrl = positional[5] ?? "";
+
+          if (!itemId || !title) {
+            console.error("Error: Usage: homeos doc add <itemId> <title> <type> <pathOrUrl>");
+            process.exitCode = 1;
+            return;
+          }
+
+          const added = addDocumentToItem(ledger, itemId, {
+            title,
+            type: docType,
+            pathOrUrl,
+          });
+          saveLedger(ledger, ledgerPath);
+          console.log(`Document '${added.title}' [${added.type}] linked to item '${itemId}' (ID: ${added.id})`);
+        } else {
+          console.error(`Unknown doc subcommand: ${sub}`);
+          process.exitCode = 1;
+        }
+        break;
+      }
+
       case "list": {
         const ledger = loadLedger(ledgerPath);
         const filterRoom = typeof flags["room"] === "string" ? flags["room"] : undefined;
@@ -315,14 +436,13 @@ export function runCli(argv: string[] = process.argv.slice(2)): void {
 
       case "dossier": {
         const roomId = positional[1];
-        if (!roomId) {
-          console.error("Error: Missing roomId. Usage: homeos dossier <roomId> [--lang it|en] [--out <path>]");
-          process.exitCode = 1;
-          return;
-        }
         const ledger = loadLedger(ledgerPath);
         const lang = flags["lang"] === "en" ? "en" : "it";
-        const markdown = generateRoomDossierMarkdown(ledger, roomId, { lang });
+
+        const markdown =
+          !roomId || roomId.toLowerCase() === "all"
+            ? generateHouseDossierMarkdown(ledger, { lang })
+            : generateRoomDossierMarkdown(ledger, roomId, { lang });
 
         const outFile = typeof flags["out"] === "string" ? flags["out"] : undefined;
         if (outFile) {
@@ -330,6 +450,27 @@ export function runCli(argv: string[] = process.argv.slice(2)): void {
           console.log(`Dossier exported to ${outFile}`);
         } else {
           console.log(markdown);
+        }
+        break;
+      }
+
+      case "export": {
+        const ledger = loadLedger(ledgerPath);
+        if (typeof flags["csv-inventory"] === "string") {
+          const csv = exportInventoryToCsv(ledger);
+          writeFileSync(resolve(process.cwd(), flags["csv-inventory"]), csv, "utf-8");
+          console.log(`Inventory CSV exported to: ${flags["csv-inventory"]}`);
+        } else if (typeof flags["csv-schedule"] === "string") {
+          const csv = exportMaintenanceScheduleToCsv(ledger.items, ledger.rooms);
+          writeFileSync(resolve(process.cwd(), flags["csv-schedule"]), csv, "utf-8");
+          console.log(`Maintenance schedule CSV exported to: ${flags["csv-schedule"]}`);
+        } else if (typeof flags["backup"] === "string") {
+          const backup = createLedgerBackup(ledger);
+          writeFileSync(resolve(process.cwd(), flags["backup"]), JSON.stringify(backup, null, 2), "utf-8");
+          console.log(`Cryptographic backup saved to: ${flags["backup"]} (SHA-256: ${backup.sha256})`);
+        } else {
+          console.error("Error: Please specify export format: --csv-inventory <file>, --csv-schedule <file>, or --backup <file>");
+          process.exitCode = 1;
         }
         break;
       }

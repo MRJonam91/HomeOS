@@ -3,6 +3,7 @@
 
 export * from "./constants.ts";
 export * from "./types.ts";
+export * from "./validator.ts";
 export * from "./warranty.ts";
 export * from "./maintenance.ts";
 export * from "./inventory.ts";
